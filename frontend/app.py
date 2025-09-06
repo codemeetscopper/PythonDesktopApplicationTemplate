@@ -1,3 +1,4 @@
+from PySide6.QtCore import QSettings
 from PySide6.QtWidgets import QApplication, QMainWindow, QLabel, QVBoxLayout, QWidget
 import sys
 
@@ -13,7 +14,8 @@ class MainWindow(QMainWindow):
         self.setWindowTitle("PySide6 MainWindow Example")
         self.setGeometry(100, 100, 600, 400)
 
-        label = QLabel("Hello, PySide6!", self)
+        setting = f"Setting is {self._config.user_settings["sample_text_input"].value}"
+        label = QLabel(setting, self)
         layout = QVBoxLayout()
         layout.addWidget(label)
 
