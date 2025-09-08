@@ -15,7 +15,7 @@ class Logger(QObject):
             cls._instance = super().__new__(cls)
         return cls._instance
 
-    def __init__(self, name: str = "AppLogger", level=logging.DEBUG):
+    def __init__(self, name: str="Application", level=logging.DEBUG):
         if getattr(self, "_initialized", False):
             return  # Avoid reinitializing the singleton
 
@@ -32,7 +32,7 @@ class Logger(QObject):
         console_handler = logging.StreamHandler()
         console_handler.setLevel(level)
         formatter = logging.Formatter(
-            "%(asctime)s | %(levelname)s | %(name)s | %(funcName)s | %(message)s"
+            "%(asctime)s | %(levelname)s | %(name)s | %(message)s"
         )
         console_handler.setFormatter(formatter)
 
@@ -43,10 +43,13 @@ class Logger(QObject):
 
     def _store_log(self, level_name: str, msg: str):
         """Store log in memory and emit update signal."""
-        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        timestamp = datetime.now().strftime("%d-%m-%Y %H:%M:%S")
         formatted = f"{timestamp} | {level_name} | {msg}"
         self.logs.append(formatted)
-        self.log_updated.emit(formatted)
+        if level_name != "DEBUG":
+            self.log_updated.emit(formatted)
+        else:
+            print(formatted)
         return formatted
 
     # Logging methods

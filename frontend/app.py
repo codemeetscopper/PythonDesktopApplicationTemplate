@@ -1,3 +1,4 @@
+import logging
 import sys
 
 from PySide6.QtWidgets import QApplication
@@ -8,20 +9,20 @@ from frontend.mainwindow.mainwindow_c import MainWindow
 from frontend.splash.splash_c import Splash
 
 
+APP_NAME = "Python Desktop App Template"
+APP_VERSION = "v0.1"
+
+
 def run():
     app = QApplication(sys.argv)
     logger = Logger()
 
-    splash = Splash("Python Desktop App Template", "v0.1")
+    splash = Splash(APP_NAME, APP_VERSION)
     splash.show()
+    QApplication.processEvents()
 
+    logger.info("Application started")
     config = ConfigurationManager("config/configuration.json")
-
-    # Simulate loading
-    import time
-    for i in range(101):
-        splash.set_progress(i, )
-        time.sleep(0.03)  # Simulate work
 
     window = MainWindow()
     window.show()

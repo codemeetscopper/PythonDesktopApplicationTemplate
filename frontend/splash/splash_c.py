@@ -18,7 +18,7 @@ class Splash(QWidget):
         self.version = version
 
         self.setWindowFlags(Qt.WindowType.FramelessWindowHint | Qt.WindowType.WindowStaysOnTopHint)
-        self.setFixedSize(500, 300)  # Customize as needed
+        self.setFixedSize(600, 300)  # Customize as needed
 
         # pixmap = QPixmap("splash_image.png")  # Put your image path here
         # self.ui.logo_label.setPixmap(pixmap.scaled(self.size(), Qt.KeepAspectRatioByExpanding, Qt.SmoothTransformation))
@@ -37,7 +37,6 @@ class Splash(QWidget):
             self.ui.progress_bar.setValue(value)
         if status_text:
             self.ui.status_label.setText(status_text)
-            print(status_text)
         QApplication.processEvents()  # Update UI immediately
 
     def _on_log_updated(self, data):

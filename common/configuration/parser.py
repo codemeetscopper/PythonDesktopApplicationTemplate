@@ -1,5 +1,6 @@
 import json
 import logging
+import time
 from dataclasses import asdict
 from PySide6.QtCore import QSettings
 from PySide6.QtGui import QColor
@@ -9,7 +10,6 @@ from .models import PageMapping, AppSettings, Configuration, SettingItem, PageIn
 from ..logger import Logger
 
 LOGGER = Logger()
-
 
 class ConfigurationManager:
     _instance = None
@@ -44,7 +44,7 @@ class ConfigurationManager:
         """Load JSON into dataclasses and QSettings."""
         if self.json_path == "":
             raise ConfigurationJsonNotProvided()
-
+        LOGGER.info(f"Loading configuration from {self.json_path}")
         with open(self.json_path, "r", encoding="utf-8") as f:
             raw = json.load(f)
 
@@ -58,7 +58,7 @@ class ConfigurationManager:
                 plugins={k: PageInfo(**v) for k, v in raw["page_mapping"]["plugins"].items()}
             )
         )
-
+        LOGGER.info(f"Loaded configuration from {self.json_path}")
         self._save_to_q_settings(raw)
 
     @LOGGER.log_function(level=logging.DEBUG)
