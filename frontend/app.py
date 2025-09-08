@@ -18,11 +18,11 @@ APP_CONFIG = "config/configuration.json"
 APP_LOGGER = None
 APP_SETTINGS = None
 
-BACKEND_WORKER = None
+BACKEND_WORKER = backend.backend_worker.get_instance()
 
 
 def run():
-    global APP_LOGGER, APP_SETTINGS
+    global APP_LOGGER, APP_SETTINGS,BACKEND_WORKER
 
     app = QApplication(sys.argv)
     APP_LOGGER = Logger()
@@ -35,10 +35,16 @@ def run():
     _initialise_basic_settings()
 
     window = MainWindow()
+    window.window_closing.connect(on_app_closing)
     window.show()
     splash.close()
-
     sys.exit(app.exec())
+
+def on_app_closing():
+    global BACKEND_WORKER
+    if BACKEND_WORKER is not None:
+        BACKEND_WORKER.shutdown()
+    APP_LOGGER.info("Exiting Application")
 
 
 def _initialise_basic_settings():
@@ -46,19 +52,17 @@ def _initialise_basic_settings():
     APP_SETTINGS = ConfigurationManager(APP_CONFIG)
     QApplication.processEvents()
 
-    BACKEND_WORKER = backend.backend_worker.get_instance()
+    def on_log_update(data):
+        APP_LOGGER.info(data)
+
+    BACKEND_WORKER.on("backend_log_update", on_log_update)
     BACKEND_WORKER.start()
 
     async def blocking_work(n):
         with BACKEND_WORKER.token():
             for i in range(n):
                 QApplication.processEvents()
-                APP_LOGGER.info("Waiting for %d seconds..." % i)
+                BACKEND_WORKER.emit('backend_log_update', "Non blocking delay " + str(i))
                 await asyncio.sleep(1)
 
-    f = BACKEND_WORKER.run_async(blocking_work(5))
-
-    # wait for all to finish
-    f.result()
-
-    BACKEND_WORKER.shutdown()
+    BACKEND_WORKER.run_async(blocking_work(5))
