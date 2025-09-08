@@ -30,7 +30,7 @@ def run():
     splash.show()
     QApplication.processEvents()
 
-    APP_LOGGER.info("Application started")
+    APP_LOGGER.info("Welcome!")
     _initialise_basic_settings()
 
     window = MainWindow()
