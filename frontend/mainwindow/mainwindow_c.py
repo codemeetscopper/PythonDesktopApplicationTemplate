@@ -1,7 +1,8 @@
 from PySide6.QtCore import Signal
 from PySide6.QtWidgets import QMainWindow, QLabel, QVBoxLayout, QWidget
 
-from common.configuration.parser import ConfigurationManager
+from common.configuration.parser import ConfigurationManager, LOGGER
+from common.logger import Logger
 from frontend.mainwindow.mainwindow import Ui_MainWindow
 
 
@@ -11,6 +12,9 @@ class MainWindow(QMainWindow):
     def __init__(self, parent=None):
         super().__init__(parent=parent)
         self._config = ConfigurationManager()
+        self._logger = Logger()
+        self._logger.log_updated.connect(self._on_log_updated)
+
         self.ui = Ui_MainWindow()
         self.ui.setupUi(self)
 
@@ -25,6 +29,9 @@ class MainWindow(QMainWindow):
         container = QWidget()
         container.setLayout(layout)
         self.setCentralWidget(container)
+
+    def _on_log_updated(self, log_text):
+        self.ui.statusbar.showMessage(log_text)
 
     def closeEvent(self, event):
         self.close()

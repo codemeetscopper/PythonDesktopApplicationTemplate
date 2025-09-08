@@ -15,7 +15,7 @@ class Logger(QObject):
             cls._instance = super().__new__(cls)
         return cls._instance
 
-    def __init__(self, name: str="Application", level=logging.DEBUG):
+    def __init__(self, name: str="Application", level=logging.INFO):
         if getattr(self, "_initialized", False):
             return  # Avoid reinitializing the singleton
 
@@ -47,7 +47,7 @@ class Logger(QObject):
         formatted = f"{timestamp} | {level_name} | {msg}"
         self.logs.append(formatted)
         if level_name != "DEBUG":
-            self.log_updated.emit(formatted)
+            self.log_updated.emit(msg)
         else:
             print(formatted)
         return formatted
@@ -83,13 +83,16 @@ class Logger(QObject):
         def decorator(func):
             @functools.wraps(func)
             def wrapper(*args, **kwargs):
-                arg_list = [repr(a) for a in args] + [f"{k}={v!r}" for k, v in kwargs.items()]
-                call_msg = f"Calling {func.__name__}({', '.join(arg_list)})"
-                self._store_log(logging.getLevelName(level), call_msg)
+                if self._logger.isEnabledFor(level):
+                    arg_list = [repr(a) for a in args] + [f"{k}={v!r}" for k, v in kwargs.items()]
+                    call_msg = f"Calling {func.__name__}({', '.join(arg_list)})"
+                    self._store_log(logging.getLevelName(level), call_msg)
                 result = func(*args, **kwargs)
-                self._store_log(logging.getLevelName(level), f"{func.__name__} returned {result!r}")
+                if self._logger.isEnabledFor(level):
+                    self._store_log(logging.getLevelName(level), f"{func.__name__} returned {result!r}")
                 return result
             return wrapper
+
         return decorator
 
     # Export logs to a file

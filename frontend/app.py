@@ -42,9 +42,11 @@ def run():
 
 def on_app_closing():
     global BACKEND_WORKER
+
+    APP_LOGGER.info("Cleaning up...")
     if BACKEND_WORKER is not None:
         BACKEND_WORKER.shutdown()
-    APP_LOGGER.info("Exiting Application")
+    APP_LOGGER.info("Goodbye!")
 
 
 def _initialise_basic_settings():
@@ -63,6 +65,7 @@ def _initialise_basic_settings():
             for i in range(n):
                 QApplication.processEvents()
                 BACKEND_WORKER.emit('backend_log_update', "Non blocking delay " + str(i))
-                await asyncio.sleep(1)
+                await asyncio.sleep(0.1)
+                time.sleep(1)
 
-    BACKEND_WORKER.run_async(blocking_work(5))
+    BACKEND_WORKER.run_async(blocking_work(100))
