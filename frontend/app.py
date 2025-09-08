@@ -1,5 +1,6 @@
 import asyncio
 import sys
+import time
 
 from PySide6.QtWidgets import QApplication
 
@@ -48,18 +49,23 @@ def _backend_worker_demo():
 
     ApplicationContext.thread_manager.on("backend_log_update", on_log_update)
 
-    async def blocking_work(n, id):
+    async def non_blocking_work(n):
         with ApplicationContext.thread_manager.token():
             for i in range(n):
                 QApplication.processEvents()
-                ApplicationContext.thread_manager.emit('backend_log_update', f"Thread Id {id} Non blocking delay {str(i)}")
-                await asyncio.sleep(0.5)
+                ApplicationContext.thread_manager.emit('backend_log_update', f"Non blocking delay {str(i)}")
+                await asyncio.sleep(0.001)
                 # time.sleep(1)
-    # f = ApplicationContext.thread_manager.run_async(blocking_work(100))
+    f = ApplicationContext.thread_manager.run_async(non_blocking_work(100))
     # f.result() # For waiting
 
-    futures = [ApplicationContext.thread_manager.run_async(blocking_work(50, i)) for i in range(2)]
-
+    # def blocking_work(n):
+    #     with ApplicationContext.thread_manager.token():
+    #         time.sleep(n)
+    #         ApplicationContext.logger.info(f"blocking delay {str(n)}")
+    #
+    # futures = [ApplicationContext.thread_manager.submit_blocking(blocking_work, i) for i in range(5)]
+    #
     # # wait for all to finish
     # for f in futures:
     #     f.result()
