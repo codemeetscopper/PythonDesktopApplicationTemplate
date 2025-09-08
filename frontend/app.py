@@ -1,24 +1,27 @@
-from PySide6.QtCore import QSettings
-from PySide6.QtWidgets import QApplication, QMainWindow, QLabel, QVBoxLayout, QWidget
 import sys
 
+from PySide6.QtWidgets import QApplication
+
 from common.configuration.parser import ConfigurationManager
+from frontend.mainwindow.mainwindow_c import MainWindow
+from frontend.splash.splash_c import Splash
 
 
-class MainWindow(QMainWindow):
-    def __init__(self, parent=None):
-        super().__init__(parent=parent)
+def run():
+    app = QApplication(sys.argv)
+    config = ConfigurationManager("config/configuration.json")
 
-        self._config = ConfigurationManager()
+    splash = Splash("Python Desktop App Template", "v0.1")
+    splash.show()
 
-        self.setWindowTitle("PySide6 MainWindow Example")
-        self.setGeometry(100, 100, 600, 400)
+    # Simulate loading
+    import time
+    for i in range(101):
+        splash.set_progress(i, f"Loading... {i}%")
+        time.sleep(0.03)  # Simulate work
 
-        setting = f"Setting is {self._config.get_value("sample_text_input").value}"
-        label = QLabel(setting, self)
-        layout = QVBoxLayout()
-        layout.addWidget(label)
+    window = MainWindow()
+    window.show()
+    splash.close()
 
-        container = QWidget()
-        container.setLayout(layout)
-        self.setCentralWidget(container)
+    sys.exit(app.exec())
