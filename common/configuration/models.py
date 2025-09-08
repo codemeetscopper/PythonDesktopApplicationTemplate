@@ -1,8 +1,9 @@
-from dataclasses import dataclass, field
-from typing import Any, Dict, List, Union
+from dataclasses import dataclass
+from typing import Any, Dict
+
 
 @dataclass
-class UserSetting:
+class SettingItem:
     name: str
     value: Any
     description: str
@@ -11,13 +12,15 @@ class UserSetting:
     group: str
     icon: str
 
-@dataclass
-class StaticSettings:
-    setting_1: str
-    setting_2: int
 
 @dataclass
-class PageMappingEntry:
+class Configuration:
+    user: Dict[str, SettingItem]
+    static: Dict[str, Any]
+
+
+@dataclass
+class PageInfo:
     widget_ref: str
     enabled: bool
     index: int
@@ -25,7 +28,14 @@ class PageMappingEntry:
     selectable: bool
     license_required: bool
 
+
 @dataclass
 class PageMapping:
-    defaults: Dict[str, PageMappingEntry] = field(default_factory=dict)
-    plugins: Dict[str, PageMappingEntry] = field(default_factory=dict)
+    defaults: Dict[str, PageInfo]
+    plugins: Dict[str, PageInfo]
+
+
+@dataclass
+class AppSettings:
+    configuration: Configuration
+    page_mapping: PageMapping

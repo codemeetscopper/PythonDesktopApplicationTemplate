@@ -1,67 +1,142 @@
 import json
-from typing import Dict, Any
-from pathlib import Path
-from .models import UserSetting, StaticSettings, PageMapping, PageMappingEntry
+from dataclasses import asdict
+from PySide6.QtCore import QSettings
+from PySide6.QtGui import QColor
+
+from .exceptions import ConfigurationNotLoadedError, SettingNotFoundError, ConfigurationJsonNotProvided
+from .models import PageMapping, AppSettings, Configuration, SettingItem, PageInfo
+
 
 class ConfigurationManager:
     _instance = None
 
-    def __new__(cls, config_path: str = None):
+    def __new__(cls, *args, **kwargs):
+        """Singleton pattern."""
         if cls._instance is None:
             cls._instance = super().__new__(cls)
-            cls._instance._initialized = False
         return cls._instance
 
-    def __init__(self, config_path: str = None):
-        if self._initialized:
-            return
-        self._initialized = True
-        self.config_path = config_path or "config/configuration.json"
-        self.user_settings: Dict[str, UserSetting] = {}
-        self.static_settings: StaticSettings = None
-        self.page_mapping: PageMapping = None
-        self._load()
+    def __init__(self, json_path: str = "", org: str = "Default Organisation", app: str = "Default Application Name"):
+        if json_path == "":
+            if hasattr(self, "_initialized") and self._initialized:
+                return
+            else:
+                raise ConfigurationJsonNotProvided()
 
-    def _load(self):
-        with open(self.config_path, "r", encoding="utf-8") as f:
-            data = json.load(f)
-        config = data["configuration"]
-        self.user_settings = {
-            k: UserSetting(**v) for k, v in config["user"].items()
-        }
-        self.static_settings = StaticSettings(**config["static"])
-        pm = data["page_mapping"]
-        self.page_mapping = PageMapping(
-            defaults={k: PageMappingEntry(**v) for k, v in pm["defaults"].items()},
-            plugins={k: PageMappingEntry(**v) for k, v in pm["plugins"].items()},
+        self._initialized = True
+
+        self.json_path = json_path
+        self.settings = QSettings(org, app)
+        self.data: AppSettings | None = None
+
+        self.load()
+
+    # --------------------------
+    # Public API
+    # --------------------------
+    def load(self):
+        """Load JSON into dataclasses and QSettings."""
+        if self.json_path == "":
+            raise ConfigurationJsonNotProvided()
+
+        with open(self.json_path, "r", encoding="utf-8") as f:
+            raw = json.load(f)
+
+        self.data = AppSettings(
+            configuration=Configuration(
+                user={k: SettingItem(**self._deserialize(v)) for k, v in raw["configuration"]["user"].items()},
+                static=raw["configuration"]["static"]
+            ),
+            page_mapping=PageMapping(
+                defaults={k: PageInfo(**v) for k, v in raw["page_mapping"]["defaults"].items()},
+                plugins={k: PageInfo(**v) for k, v in raw["page_mapping"]["plugins"].items()}
+            )
         )
 
-    def save_user_settings(self):
-        with open(self.config_path, "r", encoding="utf-8") as f:
-            data = json.load(f)
-        data["configuration"]["user"] = {
-            k: vars(v) for k, v in self.user_settings.items()
-        }
-        with open(self.config_path, "w", encoding="utf-8") as f:
-            json.dump(data, f, indent=4)
+        self._save_to_q_settings(raw)
 
-    def add_page_mapping(self, section: str, name: str, entry: PageMappingEntry):
-        mapping = getattr(self.page_mapping, section)
-        mapping[name] = entry
-        self._save_page_mapping()
+    def get_value(self, setting_key: str, as_string: bool = False):
+        """Get a user setting by key."""
+        if not self.data:
+            raise ConfigurationNotLoadedError()
 
-    def remove_page_mapping(self, section: str, name: str):
-        mapping = getattr(self.page_mapping, section)
-        if name in mapping:
-            del mapping[name]
-            self._save_page_mapping()
+        setting_obj = self.data.configuration.user.get(setting_key)
+        if not setting_obj:
+            raise SettingNotFoundError(setting_key)
 
-    def _save_page_mapping(self):
-        with open(self.config_path, "r", encoding="utf-8") as f:
-            data = json.load(f)
-        for section in ["defaults", "plugins"]:
-            data["page_mapping"][section] = {
-                k: vars(v) for k, v in getattr(self.page_mapping, section).items()
+        return self._serialize(setting_obj.value) if as_string else setting_obj
+
+    def set_value(self, setting_key: str, value):
+        """Update a user setting in both QSettings and dataclass."""
+        if not self.data:
+            raise ConfigurationNotLoadedError()
+
+        setting_obj = self.data.configuration.user.get(setting_key)
+        if not setting_obj:
+            raise SettingNotFoundError(setting_key)
+
+        # Update dataclass
+        setting_obj.value = value
+
+        # Update QSettings
+        q_settings_key = f"configuration/user/{setting_key}/value"
+        self.settings.setValue(q_settings_key, self._serialize(value))
+        self.settings.sync()
+
+    def save(self):
+        """Save current dataclasses to JSON."""
+        if not self.data:
+            raise ConfigurationNotLoadedError()
+
+        json_dict = {
+            "configuration": {
+                "user": {k: self._serialize_dict(asdict(v)) for k, v in self.data.configuration.user.items()},
+                "static": self.data.configuration.static
+            },
+            "page_mapping": {
+                "defaults": {k: asdict(v) for k, v in self.data.page_mapping.defaults.items()},
+                "plugins": {k: asdict(v) for k, v in self.data.page_mapping.plugins.items()},
             }
-        with open(self.config_path, "w", encoding="utf-8") as f:
-            json.dump(data, f, indent=4)
+        }
+        with open(self.json_path, "w", encoding="utf-8") as f:
+            json.dump(json_dict, f, indent=4)
+
+    # --------------------------
+    # Internal Helpers
+    # --------------------------
+    def _save_to_q_settings(self, raw_dict):
+        """Recursively save a dictionary to QSettings."""
+        def recursive_save(prefix, obj):
+            if isinstance(obj, dict):
+                for k, v in obj.items():
+                    recursive_save(f"{prefix}/{k}" if prefix else k, v)
+            else:
+                self.settings.setValue(prefix, self._serialize(obj))
+        recursive_save("", raw_dict)
+        self.settings.sync()
+
+    @staticmethod
+    def _serialize(value):
+        """Convert special objects to JSON-safe values."""
+        if isinstance(value, QColor):
+            return {"__type__": "QColor", "value": value.name()}
+        # Add other types like QFont, QPoint, etc.
+        return value
+
+    @staticmethod
+    def _deserialize(value):
+        """Convert stored JSON-safe values back to objects."""
+        if isinstance(value, dict) and "__type__" in value:
+            if value["__type__"] == "QColor":
+                return {**value, "value": QColor(value["value"])}
+        return value
+
+    @staticmethod
+    def _serialize_dict(d):
+        """Recursively serialize dictionary values."""
+        for k, v in d.items():
+            if isinstance(v, dict):
+                d[k] = ConfigurationManager._serialize_dict(v)
+            else:
+                d[k] = ConfigurationManager._serialize(v)
+        return d
