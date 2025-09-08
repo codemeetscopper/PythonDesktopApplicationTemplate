@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 ################################################################################
-## Form generated from reading UI file 'splashrsrRCK.ui'
+## Form generated from reading UI file 'splashkfbeqF.ui'
 ##
 ## Created by: Qt User Interface Compiler version 6.9.2
 ##
@@ -28,17 +28,17 @@ class Ui_Splash(object):
         self.logo_label = QLabel(Splash)
         self.logo_label.setObjectName(u"logo_label")
 
-        self.verticalLayout.addWidget(self.logo_label)
+        self.verticalLayout.addWidget(self.logo_label, 0, Qt.AlignmentFlag.AlignHCenter|Qt.AlignmentFlag.AlignVCenter)
 
         self.app_name_label = QLabel(Splash)
         self.app_name_label.setObjectName(u"app_name_label")
 
-        self.verticalLayout.addWidget(self.app_name_label)
+        self.verticalLayout.addWidget(self.app_name_label, 0, Qt.AlignmentFlag.AlignHCenter|Qt.AlignmentFlag.AlignVCenter)
 
         self.version_label = QLabel(Splash)
         self.version_label.setObjectName(u"version_label")
 
-        self.verticalLayout.addWidget(self.version_label)
+        self.verticalLayout.addWidget(self.version_label, 0, Qt.AlignmentFlag.AlignHCenter|Qt.AlignmentFlag.AlignVCenter)
 
         self.progress_bar = QProgressBar(Splash)
         self.progress_bar.setObjectName(u"progress_bar")

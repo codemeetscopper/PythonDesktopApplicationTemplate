@@ -39,7 +39,7 @@ class ConfigurationManager:
     # --------------------------
     # Public API
     # --------------------------
-    @LOGGER.log_function(level=logging.INFO)
+    @LOGGER.log_function(level=logging.DEBUG)
     def load(self):
         """Load JSON into dataclasses and QSettings."""
         if self.json_path == "":
@@ -91,7 +91,7 @@ class ConfigurationManager:
         self.settings.setValue(q_settings_key, self._serialize(value))
         self.settings.sync()
 
-    @LOGGER.log_function(level=logging.INFO)
+    @LOGGER.log_function(level=logging.DEBUG)
     def save(self):
         """Save current dataclasses to JSON."""
         if not self.data:
