@@ -1,28 +1,28 @@
 import asyncio
 import sys
-import time
 
 from PySide6.QtWidgets import QApplication
 
+import frontend.context
 from common.configuration.parser import ConfigurationManager
 from common.logger import Logger
-from frontend.context import ApplicationContext
 from frontend.core import backend_worker
 from frontend.mainwindow.mainwindow_c import MainWindow
 from frontend.splash.splash_c import Splash
 
+ApplicationContext = frontend.context.ApplicationContext
 
 def run():
+    global ApplicationContext
     app = QApplication(sys.argv)
-    ApplicationContext.logger = Logger()
-    ApplicationContext.backend_worker = backend_worker.get_instance()
+    initialise_context()
 
     splash = Splash(ApplicationContext.name, ApplicationContext.version)
     splash.show()
     QApplication.processEvents()
 
     ApplicationContext.logger.info("Welcome!")
-    _initialise_basic_settings()
+    _initialise_app()
 
     window = MainWindow()
     window.window_closing.connect(on_app_closing)
@@ -30,16 +30,21 @@ def run():
     splash.close()
     sys.exit(app.exec())
 
+def initialise_context():
+    global ApplicationContext
+    ApplicationContext.logger = Logger()
+    ApplicationContext.backend_worker = backend_worker.get_instance()
+    ApplicationContext.settings = ConfigurationManager(ApplicationContext.config_path)
+
 def on_app_closing():
+    global ApplicationContext
     ApplicationContext.logger.info("Cleaning up...")
     if ApplicationContext.backend_worker is not None:
         ApplicationContext.backend_worker.shutdown()
     ApplicationContext.logger.info("Goodbye!")
 
-
-def _initialise_basic_settings():
-    ApplicationContext.settings = ConfigurationManager(ApplicationContext.config_path)
-    QApplication.processEvents()
+def _initialise_app():
+    global ApplicationContext
     ApplicationContext.backend_worker.start()
 
     def on_log_update(data):
