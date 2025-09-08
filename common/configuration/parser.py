@@ -1,10 +1,14 @@
 import json
+import logging
 from dataclasses import asdict
 from PySide6.QtCore import QSettings
 from PySide6.QtGui import QColor
 
 from .exceptions import ConfigurationNotLoadedError, SettingNotFoundError, ConfigurationJsonNotProvided
 from .models import PageMapping, AppSettings, Configuration, SettingItem, PageInfo
+from ..logger import Logger
+
+LOGGER = Logger()
 
 
 class ConfigurationManager:
@@ -17,6 +21,7 @@ class ConfigurationManager:
         return cls._instance
 
     def __init__(self, json_path: str = "", org: str = "Default Organisation", app: str = "Default Application Name"):
+
         if json_path == "":
             if hasattr(self, "_initialized") and self._initialized:
                 return
@@ -34,6 +39,7 @@ class ConfigurationManager:
     # --------------------------
     # Public API
     # --------------------------
+    @LOGGER.log_function(level=logging.INFO)
     def load(self):
         """Load JSON into dataclasses and QSettings."""
         if self.json_path == "":
@@ -55,6 +61,7 @@ class ConfigurationManager:
 
         self._save_to_q_settings(raw)
 
+    @LOGGER.log_function(level=logging.DEBUG)
     def get_value(self, setting_key: str, as_string: bool = False):
         """Get a user setting by key."""
         if not self.data:
@@ -66,6 +73,7 @@ class ConfigurationManager:
 
         return self._serialize(setting_obj.value) if as_string else setting_obj
 
+    @LOGGER.log_function(level=logging.DEBUG)
     def set_value(self, setting_key: str, value):
         """Update a user setting in both QSettings and dataclass."""
         if not self.data:
@@ -83,6 +91,7 @@ class ConfigurationManager:
         self.settings.setValue(q_settings_key, self._serialize(value))
         self.settings.sync()
 
+    @LOGGER.log_function(level=logging.INFO)
     def save(self):
         """Save current dataclasses to JSON."""
         if not self.data:
@@ -104,6 +113,7 @@ class ConfigurationManager:
     # --------------------------
     # Internal Helpers
     # --------------------------
+    @LOGGER.log_function(level=logging.DEBUG)
     def _save_to_q_settings(self, raw_dict):
         """Recursively save a dictionary to QSettings."""
         def recursive_save(prefix, obj):

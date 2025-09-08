@@ -5,11 +5,12 @@ from PySide6.QtWidgets import (
 from PySide6.QtCore import Qt, QTimer
 from PySide6.QtGui import QPixmap, QFont
 
+from common.logger import Logger
 from frontend.splash.splash import Ui_Splash
 
 
 class Splash(QWidget):
-    def __init__(self, app_name="My App", version="v1.0"):
+    def __init__(self, app_name, version):
         super().__init__()
         self.ui = Ui_Splash()
         self.ui.setupUi(self)
@@ -27,9 +28,17 @@ class Splash(QWidget):
         self.ui.app_name_label.setText(self.app_name)
         self.ui.version_label.setText(self.version)
 
+        logger = Logger()
+        logger.log_updated.connect(self._on_log_updated)
 
-    def set_progress(self, value, status_text=None):
-        self.ui.progress_bar.setValue(value)
+
+    def set_progress(self, value=-1, status_text=None):
+        if value != -1:
+            self.ui.progress_bar.setValue(value)
         if status_text:
             self.ui.status_label.setText(status_text)
+            print(status_text)
         QApplication.processEvents()  # Update UI immediately
+
+    def _on_log_updated(self, data):
+        self.set_progress(-1, data)
