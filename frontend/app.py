@@ -15,7 +15,7 @@ ApplicationContext = frontend.context.ApplicationContext
 def run():
     global ApplicationContext
     app = QApplication(sys.argv)
-    initialise_context()
+    _initialise_context()
 
     splash = Splash(ApplicationContext.name, ApplicationContext.version)
     splash.show()
@@ -25,30 +25,34 @@ def run():
     _initialise_app()
 
     window = MainWindow()
-    window.window_closing.connect(on_app_closing)
+    window.window_closing.connect(_on_app_closing)
     window.show()
     splash.close()
     sys.exit(app.exec())
 
-def initialise_context():
+def _initialise_context():
     global ApplicationContext
     ApplicationContext.logger = Logger()
     ApplicationContext.backend_worker = backend_worker.get_instance()
     ApplicationContext.settings = ConfigurationManager(ApplicationContext.config_path)
 
-def on_app_closing():
+def _initialise_app():
+    global ApplicationContext
+    ApplicationContext.backend_worker.start()
+    _backend_worker_demo()
+
+def _on_app_closing():
     global ApplicationContext
     ApplicationContext.logger.info("Cleaning up...")
     if ApplicationContext.backend_worker is not None:
         ApplicationContext.backend_worker.shutdown()
     ApplicationContext.logger.info("Goodbye!")
 
-def _initialise_app():
-    global ApplicationContext
-    ApplicationContext.backend_worker.start()
-
+def _backend_worker_demo():
     def on_log_update(data):
         ApplicationContext.logger.info(data)
+
+    global ApplicationContext
     ApplicationContext.backend_worker.on("backend_log_update", on_log_update)
 
     async def blocking_work(n):
@@ -58,5 +62,4 @@ def _initialise_app():
                 ApplicationContext.backend_worker.emit('backend_log_update', "Non blocking delay " + str(i))
                 await asyncio.sleep(0.1)
                 # time.sleep(1)
-
     ApplicationContext.backend_worker.run_async(blocking_work(100))
