@@ -8,7 +8,8 @@ class AppContext:
     config_path: str = "config/configuration.json"
     logger: Optional[object] = None
     settings: Optional[object] = None
-    backend_worker: Optional[object] = None
+    thread_manager: Optional[object] = None
+    sdk: Optional[object] = None
 
 # Create a single instance to share across your app
 ApplicationContext = AppContext()

@@ -3,25 +3,21 @@ import sys
 
 from PySide6.QtWidgets import QApplication
 
-import frontend.context
+from frontend import ApplicationContext
 from common.configuration.parser import ConfigurationManager
 from common.logger import Logger
-from frontend.core import backend_worker
+from frontend.core.helpers import threadmanager
 from frontend.mainwindow.mainwindow_c import MainWindow
 from frontend.splash.splash_c import Splash
 
-ApplicationContext = frontend.context.ApplicationContext
 
 def run():
-    global ApplicationContext
     app = QApplication(sys.argv)
     _initialise_context()
+    ApplicationContext.logger.info("Welcome!")
 
     splash = Splash(ApplicationContext.name, ApplicationContext.version)
     splash.show()
-    QApplication.processEvents()
-
-    ApplicationContext.logger.info("Welcome!")
     _initialise_app()
 
     window = MainWindow()
@@ -31,35 +27,39 @@ def run():
     sys.exit(app.exec())
 
 def _initialise_context():
-    global ApplicationContext
     ApplicationContext.logger = Logger()
-    ApplicationContext.backend_worker = backend_worker.get_instance()
+    ApplicationContext.thread_manager = threadmanager.get_instance()
     ApplicationContext.settings = ConfigurationManager(ApplicationContext.config_path)
+    QApplication.processEvents()
 
 def _initialise_app():
-    global ApplicationContext
-    ApplicationContext.backend_worker.start()
+    ApplicationContext.thread_manager.start()
     _backend_worker_demo()
 
 def _on_app_closing():
-    global ApplicationContext
     ApplicationContext.logger.info("Cleaning up...")
-    if ApplicationContext.backend_worker is not None:
-        ApplicationContext.backend_worker.shutdown()
+    if ApplicationContext.thread_manager is not None:
+        ApplicationContext.thread_manager.shutdown()
     ApplicationContext.logger.info("Goodbye!")
 
 def _backend_worker_demo():
     def on_log_update(data):
         ApplicationContext.logger.info(data)
 
-    global ApplicationContext
-    ApplicationContext.backend_worker.on("backend_log_update", on_log_update)
+    ApplicationContext.thread_manager.on("backend_log_update", on_log_update)
 
-    async def blocking_work(n):
-        with ApplicationContext.backend_worker.token():
+    async def blocking_work(n, id):
+        with ApplicationContext.thread_manager.token():
             for i in range(n):
                 QApplication.processEvents()
-                ApplicationContext.backend_worker.emit('backend_log_update', "Non blocking delay " + str(i))
-                await asyncio.sleep(0.1)
+                ApplicationContext.thread_manager.emit('backend_log_update', f"Thread Id {id} Non blocking delay {str(i)}")
+                await asyncio.sleep(0.5)
                 # time.sleep(1)
-    ApplicationContext.backend_worker.run_async(blocking_work(100))
+    # f = ApplicationContext.thread_manager.run_async(blocking_work(100))
+    # f.result() # For waiting
+
+    futures = [ApplicationContext.thread_manager.run_async(blocking_work(50, i)) for i in range(2)]
+
+    # # wait for all to finish
+    # for f in futures:
+    #     f.result()
