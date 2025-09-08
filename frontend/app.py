@@ -4,33 +4,24 @@ import time
 
 from PySide6.QtWidgets import QApplication
 
-import frontend.core.backend_worker
 from common.configuration.parser import ConfigurationManager
 from common.logger import Logger
+from frontend.context import ApplicationContext
+from frontend.core import backend_worker
 from frontend.mainwindow.mainwindow_c import MainWindow
 from frontend.splash.splash_c import Splash
 
 
-APP_NAME = "Python Desktop App Template"
-APP_VERSION = "v0.1"
-APP_CONFIG = "config/configuration.json"
-APP_LOGGER = None
-APP_SETTINGS = None
-
-BACKEND_WORKER = frontend.core.backend_worker.get_instance()
-
-
 def run():
-    global APP_LOGGER, APP_SETTINGS,BACKEND_WORKER
-
     app = QApplication(sys.argv)
-    APP_LOGGER = Logger()
+    ApplicationContext.logger = Logger()
+    ApplicationContext.backend_worker = backend_worker.get_instance()
 
-    splash = Splash(APP_NAME, APP_VERSION)
+    splash = Splash(ApplicationContext.name, ApplicationContext.version)
     splash.show()
     QApplication.processEvents()
 
-    APP_LOGGER.info("Welcome!")
+    ApplicationContext.logger.info("Welcome!")
     _initialise_basic_settings()
 
     window = MainWindow()
@@ -40,31 +31,27 @@ def run():
     sys.exit(app.exec())
 
 def on_app_closing():
-    global BACKEND_WORKER
-
-    APP_LOGGER.info("Cleaning up...")
-    if BACKEND_WORKER is not None:
-        BACKEND_WORKER.shutdown()
-    APP_LOGGER.info("Goodbye!")
+    ApplicationContext.logger.info("Cleaning up...")
+    if ApplicationContext.backend_worker is not None:
+        ApplicationContext.backend_worker.shutdown()
+    ApplicationContext.logger.info("Goodbye!")
 
 
 def _initialise_basic_settings():
-    global APP_CONFIG, APP_SETTINGS, BACKEND_WORKER
-    APP_SETTINGS = ConfigurationManager(APP_CONFIG)
+    ApplicationContext.settings = ConfigurationManager(ApplicationContext.config_path)
     QApplication.processEvents()
+    ApplicationContext.backend_worker.start()
 
     def on_log_update(data):
-        APP_LOGGER.info(data)
-
-    BACKEND_WORKER.on("backend_log_update", on_log_update)
-    BACKEND_WORKER.start()
+        ApplicationContext.logger.info(data)
+    ApplicationContext.backend_worker.on("backend_log_update", on_log_update)
 
     async def blocking_work(n):
-        with BACKEND_WORKER.token():
+        with ApplicationContext.backend_worker.token():
             for i in range(n):
                 QApplication.processEvents()
-                BACKEND_WORKER.emit('backend_log_update', "Non blocking delay " + str(i))
+                ApplicationContext.backend_worker.emit('backend_log_update', "Non blocking delay " + str(i))
                 await asyncio.sleep(0.1)
-                time.sleep(1)
+                # time.sleep(1)
 
-    BACKEND_WORKER.run_async(blocking_work(100))
+    ApplicationContext.backend_worker.run_async(blocking_work(100))
