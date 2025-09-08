@@ -1,11 +1,10 @@
 import asyncio
-import logging
 import sys
 import time
 
 from PySide6.QtWidgets import QApplication
 
-import backend.backend_worker
+import frontend.core.backend_worker
 from common.configuration.parser import ConfigurationManager
 from common.logger import Logger
 from frontend.mainwindow.mainwindow_c import MainWindow
@@ -18,7 +17,7 @@ APP_CONFIG = "config/configuration.json"
 APP_LOGGER = None
 APP_SETTINGS = None
 
-BACKEND_WORKER = backend.backend_worker.get_instance()
+BACKEND_WORKER = frontend.core.backend_worker.get_instance()
 
 
 def run():
