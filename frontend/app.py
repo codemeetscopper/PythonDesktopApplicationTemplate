@@ -1,13 +1,13 @@
 import asyncio
 import sys
-import time
 
 from PySide6.QtWidgets import QApplication
 
-from frontend import ApplicationContext
 from common.configuration.parser import ConfigurationManager
 from common.logger import Logger
-from frontend.core.helpers import threadmanager
+from frontend import ApplicationContext
+from common import threadmanager
+from common.backendmanager import BackendManager
 from frontend.mainwindow.mainwindow_c import MainWindow
 from frontend.splash.splash_c import Splash
 
@@ -28,9 +28,14 @@ def run():
     sys.exit(app.exec())
 
 def _initialise_context():
-    ApplicationContext.logger = Logger()
+    ApplicationContext._logger = Logger()
     ApplicationContext.thread_manager = threadmanager.get_instance()
     ApplicationContext.settings = ConfigurationManager(ApplicationContext.config_path)
+
+    ip = ApplicationContext.settings.get_value('sdk_ip_address')
+    port = ApplicationContext.settings.get_value('sdk_tcp_port')
+
+    ApplicationContext.sdk_manager = BackendManager(ip, port)
     QApplication.processEvents()
 
 def _initialise_app():

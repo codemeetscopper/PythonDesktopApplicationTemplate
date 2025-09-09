@@ -41,17 +41,17 @@ class _SingletonMeta:
     """Tiny singleton helper via attribute on the function module-level."""
 
 
-_backend_instance: Optional["BackendWorker"] = None
+_backend_instance: Optional["ThreadManager"] = None
 
 
-def get_instance() -> "BackendWorker":
+def get_instance() -> "ThreadManager":
     """Return the shared Backend singleton (creates if missing).
 
     Use this in your application as the single access point for background tasks.
     """
     global _backend_instance
     if _backend_instance is None:
-        _backend_instance = BackendWorker()
+        _backend_instance = ThreadManager()
     return _backend_instance
 
 
@@ -62,7 +62,7 @@ class Token:
     (the latter returns an async context manager).
     """
 
-    def __init__(self, backend: "BackendWorker"):
+    def __init__(self, backend: "ThreadManager"):
         self._backend = backend
         self._released = False
 
@@ -93,7 +93,7 @@ class Token:
         self.release()
 
 
-class BackendWorker:
+class ThreadManager:
     """Backend manager.
 
     Typical usage:
