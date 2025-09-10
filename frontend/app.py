@@ -28,7 +28,7 @@ def run():
     sys.exit(app.exec())
 
 def _initialise_context():
-    ApplicationContext._logger = Logger()
+    ApplicationContext.logger = Logger()
     ApplicationContext.thread_manager = threadmanager.get_instance()
     ApplicationContext.settings = ConfigurationManager(ApplicationContext.config_path)
 

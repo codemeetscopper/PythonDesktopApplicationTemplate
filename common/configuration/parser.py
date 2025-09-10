@@ -63,15 +63,21 @@ class ConfigurationManager:
 
     @LOGGER.log_function(level=logging.DEBUG)
     def get_value(self, setting_key: str, as_string: bool = False):
-        """Get a user setting by key."""
+        """Get a user or static setting by key."""
         if not self.data:
             raise ConfigurationNotLoadedError()
 
         setting_obj = self.data.configuration.user.get(setting_key)
-        if not setting_obj:
+        is_user_setting = setting_obj is not None
+
+        if not is_user_setting:
+            setting_obj = self.data.configuration.static.get(setting_key)
+
+        if setting_obj is None:
             raise SettingNotFoundError(setting_key)
 
-        return self._serialize(setting_obj.value) if as_string else setting_obj
+        value = getattr(setting_obj, 'Value', setting_obj)
+        return self._serialize(value) if as_string else value
 
     @LOGGER.log_function(level=logging.DEBUG)
     def set_value(self, setting_key: str, value):
